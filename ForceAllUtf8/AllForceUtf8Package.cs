@@ -1,20 +1,14 @@
-﻿using System;
-using System.ComponentModel.Design;
-using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
-using System.Runtime.InteropServices;
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.VisualStudio;
-using Microsoft.VisualStudio.OLE.Interop;
+﻿using EnvDTE;
+using EnvDTE80;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
-using Microsoft.Win32;
-using EnvDTE;
-using EnvDTE80;
+using System;
+using System.Diagnostics;
+using System.Globalization;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading;
 using Task = System.Threading.Tasks.Task;
 
 namespace ForceAllUtf8
@@ -98,12 +92,16 @@ namespace ForceAllUtf8
             {
                 var stream = new FileStream(path, FileMode.Open);
                 var reader = new StreamReader(stream, Encoding.Default, true);
-                reader.Read();
+
+                var guess = new char[3];
+
+                reader.Read(guess, 0, 3);
 
                 var preambleBytes = reader.CurrentEncoding.GetPreamble();
-                if (preambleBytes.Length == 3 && 
-                    preambleBytes[0] == 0xEF && preambleBytes[1] == 0xBB && preambleBytes[2] == 0xBF &&
-                    reader.CurrentEncoding.EncodingName == Encoding.UTF8.EncodingName)
+                if (reader.CurrentEncoding.EncodingName == Encoding.UTF8.EncodingName &&
+                     guess[0] == preambleBytes[0] &&
+                     guess[1] == preambleBytes[1] &&
+                     guess[2] == preambleBytes[2])
                 {
                     stream.Close();
                     return;
@@ -133,7 +131,7 @@ namespace ForceAllUtf8
             }
             catch (Exception e)
             {
-                Debug.WriteLine(string.Format(CultureInfo.CurrentCulture, "Exception occured when converting file '{0}' encoding to utf-8(BOM):\n{1}", 
+                Debug.WriteLine(string.Format(CultureInfo.CurrentCulture, "Exception occured when converting file '{0}' encoding to utf-8(BOM):\n{1}",
                     path, e.ToString()));
             }
         }
